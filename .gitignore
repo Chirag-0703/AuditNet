@@ -1,0 +1,21 @@
+# Byte-compiled / cache
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+
+# Data files
+*.csv
+*.pkl
+*.pt
+
+# OS-specific junk
+.DS_Store
+Thumbs.db
+
+# Jupyter/IPython
+.ipynb_checkpoints/
+
+# VS Code config
+.vscode/
