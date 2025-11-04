@@ -22,13 +22,6 @@ AuditNet is a production-ready fraud anomaly detection platform that synthesizes
 - **Model training modules** (`src/gnn/train_gnn.py`, `src/lstm/train_lstm.py`, `src/mlp/train_mlp.py`): reproducible, weighted, stratified training.
 - **Dashboard UI** (`src/dashboard.py`): streamlit app with performance analytics and investigative workflows.
 
-```mermaid
-graph TD
-    A[Synthetic Ledger Simulation] --> B[Graph & Sequence Builders]
-    B --> C[Model Training (GNN / LSTM / MLP)]
-    C --> D[Inference Artifacts]
-    D --> E[Streamlit Dashboard & Decisions]
-```
 
 ## Directory Structure
 
