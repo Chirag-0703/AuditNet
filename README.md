@@ -55,7 +55,7 @@ AuditNet/
    ```bash
    brew install libomp
    ```
-5. **PyTorch Geometric wheels** – if the default install fails, fetch the appropriate wheel from https://data.pyg.org/whl and install the build matching `torch==2.8.0` and your platform, e.g.
+5. **PyTorch Geometric wheels** – `requirements.txt` already points pip to the pre-built CPU wheels hosted on https://data.pyg.org/whl for `torch==2.8.0`. If you customize the stack, reinstall with:
    ```bash
    pip install torch==2.8.0 torchvision==0.23.0 torchaudio==2.8.0 \
      --index-url https://download.pytorch.org/whl/cpu
@@ -88,6 +88,13 @@ streamlit run src/dashboard.py
 
 - **Model Performance tab** – compare metrics, confusion matrices, ROC/PR curves, loss curves, and training stability notes.
 - **Audit Dashboard tab** – select an account, review probability scores, inbound/outbound summaries, anomaly rationale, recent transactions, and fraudulent-amount histograms.
+
+## Streamlit Cloud Deployment
+
+- Push the repo to GitHub and point Streamlit Cloud at `src/dashboard.py`.
+- The bundled `requirements.txt` pulls CPU-only PyTorch and PyG wheels for Torch 2.8.0, matching Streamlit's Python 3.13 runtimes without compiling from source.
+- If you need GPU runtimes, adjust the `requirements.txt` wheel qualifiers (`+cpu` → `+cuXXX`) and mirror the change in the extra index / find-links entries.
+- Artifacts expected by the dashboard (`data/processed/*.pt`, `models/*.pt`) must be checked into the repo or generated during startup.
 
 ## Metrics Interpretation Guide
 
