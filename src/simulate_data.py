@@ -4,9 +4,9 @@ from datetime import datetime, timedelta
 import random
 import os
 
-# Set constants
 NUM_ACCOUNTS = 500
-NUM_TXNS = 10000
+NUM_TXNS = 23000
+FRAUD_ACCOUNTS = 48
 SEED = 42
 random.seed(SEED)
 np.random.seed(SEED)
@@ -45,66 +45,69 @@ def fiscal_timestamp(start_date, end_date, after_hours=False):
 
         return random_day.strftime("%Y-%m-%d %H:%M:%S")
 
-
 def simulate_transactions():
     accounts = generate_account_ids(NUM_ACCOUNTS)
+    fraud_accounts = random.sample(accounts, FRAUD_ACCOUNTS)
+
     start_date = datetime(2024, 3, 31)
     end_date = datetime(2025, 3, 31)
 
     txns = []
     txn_id = 1
 
-    # Creating Normal transactions
-    for _ in range(int(NUM_TXNS * 0.93)):
+    # ----- Normal transactions (85%) -----
+    for _ in range(int(NUM_TXNS * 0.85)):
         from_acct, to_acct = random.sample(accounts, 2)
         amount = round(random.uniform(100, 10000), 2)
         ts = fiscal_timestamp(start_date, end_date)
-        txns.append([f"T{txn_id}", ts, from_acct, to_acct, amount, "normal", "normal"])
+        txns.append([f"T{txn_id}", ts, from_acct, to_acct, amount, "normal"])
         txn_id += 1
 
-    # Targeting Circular flow Transactions
-    for _ in range(int(NUM_TXNS * 0.02)):
-        path = random.sample(accounts, 3)
+    # ---- Anomalies (~3750 per category = 15000 total = 15%) ----
+    # Use only fraud_accounts for at least one side of each anomaly txn
+
+    # Circular Flow (3 txns per cycle)
+    for _ in range(500):  # 500 cycles = 1500 txns
+        path = random.sample(fraud_accounts, 3)
         amt = round(random.uniform(5000, 10000), 2)
         ts = fiscal_timestamp(start_date, end_date)
         for i in range(3):
-            from_acct = path[i]
-            to_acct = path[(i + 1) % 3]
-            txns.append([f"T{txn_id}", ts, from_acct, to_acct, amt - i * 100, "circular", "circular_flow"])
+            txns.append([f"T{txn_id}", ts, path[i], path[(i + 1) % 3], amt - i * 100, "circular_flow"])
             txn_id += 1
 
-    # Targeting Self-loop Transactions
-    for _ in range(int(NUM_TXNS * 0.01)):
-        acct = random.choice(accounts)
+    # Self-loop (fraud_account sends to itself)
+    for _ in range(1500):
+        acct = random.choice(fraud_accounts)
         amount = round(random.uniform(1000, 9000), 2)
         ts = fiscal_timestamp(start_date, end_date)
-        txns.append([f"T{txn_id}", ts, acct, acct, amount, "self-loop", "self_loop"])
+        txns.append([f"T{txn_id}", ts, acct, acct, amount, "self_loop"])
         txn_id += 1
 
-    # Targeting After-hours Transactions
-    for _ in range(int(NUM_TXNS * 0.02)):
-        from_acct, to_acct = random.sample(accounts, 2)
+    # After-hours (fraud_account as sender or receiver)
+    for _ in range(1500):
+        from_acct = random.choice(fraud_accounts)
+        to_acct = random.choice([a for a in accounts if a != from_acct])
         amount = round(random.uniform(1000, 9000), 2)
         ts = fiscal_timestamp(start_date, end_date, after_hours=True)
-        txns.append([f"T{txn_id}", ts, from_acct, to_acct, amount, "after-hours", "after_hours"])
+        txns.append([f"T{txn_id}", ts, from_acct, to_acct, amount, "after_hours"])
         txn_id += 1
 
-    # Targeting Structuring Transactions
-    for _ in range(int(NUM_TXNS * 0.02)):
-        sender = random.choice(accounts)
+    # Structuring (1 sender, 3 receivers = 1500 txns from 500 senders)
+    for _ in range(500):
+        sender = random.choice(fraud_accounts)
         receivers = random.sample([a for a in accounts if a != sender], 3)
         for recv in receivers:
             amount = round(random.uniform(9000, 9999), 2)
             ts = fiscal_timestamp(start_date, end_date)
-            txns.append([f"T{txn_id}", ts, sender, recv, amount, "structured", "structuring"])
+            txns.append([f"T{txn_id}", ts, sender, recv, amount, "structuring"])
             txn_id += 1
 
-    df = pd.DataFrame(txns, columns=["txn_id", "timestamp", "from_acct", "to_acct", "amount", "description", "anomaly_type"])
+    df = pd.DataFrame(txns, columns=["txn_id", "timestamp", "from_acct", "to_acct", "amount", "anomaly_type"])
     df = df.sort_values("timestamp").reset_index(drop=True)
 
-    os.makedirs("../data/raw", exist_ok=True)
-    df.to_csv("../data/raw/ledger.csv", index=False)
-    print("Saved: data/raw/ledger.csv | Rows:", len(df))
+    os.makedirs("data/raw", exist_ok=True)
+    df.to_csv("data/raw/ledger.csv", index=False)
+    print(f"Saved: data/raw/ledger.csv | Rows: {len(df)} | Fraud accounts: {len(fraud_accounts)}")
 
 if __name__ == "__main__":
     simulate_transactions()
